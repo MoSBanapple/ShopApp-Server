@@ -14,9 +14,6 @@ import (
 
 
 func TestProductsHandler(t *testing.T) {
-    // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
-    // pass 'nil' as the third parameter.
-    //body := []byte("name=Apple&code=12345&description=test&image=thisimage")
     url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
     req, err := http.NewRequest("POST", url, nil)
     if err != nil {
@@ -24,9 +21,7 @@ func TestProductsHandler(t *testing.T) {
         return
     }
     
-    client := http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+    client := http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -49,9 +44,6 @@ func TestProductsHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -70,9 +62,6 @@ func TestProductsHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -93,9 +82,6 @@ func TestProductsHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -119,9 +105,6 @@ func TestProductsHandler(t *testing.T) {
 
 
 func TestPricesHandler(t *testing.T) {
-    // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
-    // pass 'nil' as the third parameter.
-    //body := []byte("name=Apple&code=12345&description=test&image=thisimage")
     url := "https://storeproject-209402.appspot.com/prices?code=testCode12345&price=1.23"
     req, err := http.NewRequest("POST", url, nil)
     if err != nil {
@@ -129,9 +112,7 @@ func TestPricesHandler(t *testing.T) {
         return
     }
     
-    client := http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+    client := http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -154,9 +135,6 @@ func TestPricesHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -175,9 +153,6 @@ func TestPricesHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -198,9 +173,6 @@ func TestPricesHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -226,9 +198,6 @@ func TestPricesHandler(t *testing.T) {
 
 
 func TestStocksHandler(t *testing.T) {
-    // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
-    // pass 'nil' as the third parameter.
-    //body := []byte("name=Apple&code=12345&description=test&image=thisimage")
     url := "https://storeproject-209402.appspot.com/stocks?code=testCode12345&stock=1"
     req, err := http.NewRequest("POST", url, nil)
     if err != nil {
@@ -236,9 +205,7 @@ func TestStocksHandler(t *testing.T) {
         return
     }
     
-    client := http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+    client := http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -261,9 +228,7 @@ func TestStocksHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -282,9 +247,7 @@ func TestStocksHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -305,9 +268,7 @@ func TestStocksHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -328,9 +289,7 @@ func TestStocksHandler(t *testing.T) {
 }
 
 func TestUsersHandler(t *testing.T) {
-    // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
-    // pass 'nil' as the third parameter.
-    //body := []byte("name=Apple&code=12345&description=test&image=thisimage")
+
     url := "https://storeproject-209402.appspot.com/users?name=TestUser&balance=50.02&cart=12345&cart=67890"
     req, err := http.NewRequest("POST", url, nil)
     if err != nil {
@@ -338,9 +297,7 @@ func TestUsersHandler(t *testing.T) {
         return
     }
     
-    client := http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+    client := http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -363,9 +320,7 @@ func TestUsersHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -384,9 +339,7 @@ func TestUsersHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
@@ -407,9 +360,7 @@ func TestUsersHandler(t *testing.T) {
         log.Fatal("NewRequest: ", err)
         return
     }
-    client = http.Client{
-		//Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+
     resp, err = client.Do(req)
     if err != nil {
         log.Fatal("Do: ", err)
