@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 	//"bytes"
-	"encoding/json"
+	//"encoding/json"
 	"io/ioutil"
-	"strings"
+	//"strings"
 	//"log"
 	//"strconv"
 	//"fmt"
@@ -18,43 +18,52 @@ This test is designed to create, modify, and delete a product with code "testCod
 If a product with the same code already exists, it will be deleted after running this test.
 */
 
-func TestProductsHandler(t *testing.T) {
+func TestProductCreate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
 	result := makeCall(url, "POST")
-	var resultProd Product
-	if err := json.NewDecoder(strings.NewReader(result)).Decode(&resultProd); err != nil {
-		t.Errorf("Decode: %v", err.Error())
-	}
 	expected := `{"name":"Apple","barcode":"testCode12345","description":"test","image":"thisimage"}`
-	if resultProd.toJson() != expected {
+	if result != expected {
 		t.Errorf("POST product: got %v want %v",
-			resultProd.toJson(), expected)
+			result, expected)
 	}
+}
 
+func TestProductGet(t *testing.T) {
+	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
+	makeCall(url, "POST")
 	url = "https://storeproject-209402.appspot.com/products/testCode12345"
-	result = makeCall(url, "GET")
-	if err := json.NewDecoder(strings.NewReader(result)).Decode(&resultProd); err != nil {
-		t.Errorf("Decode: %v", err.Error())
-	}
-	if resultProd.toJson() != expected {
+	expected := `{"name":"Apple","barcode":"testCode12345","description":"test","image":"thisimage"}`
+	result := makeCall(url, "GET")
+	if result != expected {
 		t.Errorf("GET product: got %v want %v",
-			resultProd.toJson(), expected)
+			result, expected)
 	}
+}
+
+func TestProductUpdate(t *testing.T) {
+	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
+	makeCall(url, "POST")
 	url = "https://storeproject-209402.appspot.com/products/testCode12345?name=Banana&description=test2&image=thisimage2"
-	result = makeCall(url, "PUT")
-	if err := json.NewDecoder(strings.NewReader(result)).Decode(&resultProd); err != nil {
-		t.Errorf("Decode: %v", err.Error())
-	}
-	expected = `{"name":"Banana","barcode":"testCode12345","description":"test2","image":"thisimage2"}`
-	if resultProd.toJson() != expected {
+	result := makeCall(url, "PUT")
+	expected := `{"name":"Banana","barcode":"testCode12345","description":"test2","image":"thisimage2"}`
+	if result != expected {
 		t.Errorf("PUT product: got %v want %v",
-			resultProd.toJson(), expected)
+			result, expected)
 	}
+}
 
+func TestProductDelete(t *testing.T) {
+	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
+	makeCall(url, "POST")
 	url = "https://storeproject-209402.appspot.com/products/testCode12345"
+	result := makeCall(url, "DELETE")
+	expected := `204 OK`
+	if result != expected {
+		t.Errorf("DELETE product: got %v want %v",
+			result, expected)
+	}
 	result = makeCall(url, "DELETE")
-	expected = `204 OK`
-
+	expected = `404 not found`
 	if result != expected {
 		t.Errorf("DELETE product: got %v want %v",
 			result, expected)

@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
@@ -14,26 +15,46 @@ import (
 )
 
 type Product struct {
-	Name        string
-	Barcode     string
-	Description string
-	Image       string
+	Name        string `json:"name"`
+	Barcode     string `json:"barcode"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
 }
 
 type Price struct {
-	Barcode string
-	Price   float64
+	Barcode string  `json:"barcode"`
+	Price   float64 `json:"price"`
 }
 
 type Stock struct {
-	Barcode string
-	Stock   int64
+	Barcode string `json:"barcode"`
+	Stock   int64  `json:"stock"`
 }
 
 type User struct {
-	Name    string
-	Balance float64
-	Cart    []string
+	Name    string   `json:"name"`
+	Balance float64  `json:"balance"`
+	Cart    []string `json:"cart"`
+}
+
+type ProductList struct {
+	Products []Product `json:"products"`
+}
+
+type PriceList struct {
+	Prices []Price `json:"prices"`
+}
+
+type StockList struct {
+	Stocks []Stock `json:"stocks"`
+}
+
+type UserList struct {
+	Users []User `json:"users"`
+}
+
+type ExtractAttributes struct {
+	Request *http.Request
 }
 
 func main() {
@@ -50,26 +71,20 @@ func main() {
 	appengine.Main()
 }
 
-/*
-func handle(w http.ResponseWriter, r *http.Request) {
-
-    fmt.Fprintln(w, "home")
-
-}
-*/
-
 func testHandle(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, r.URL.Path)
+	fmt.Fprintln(w, "test")
 
 }
 
 func productsHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
-	switch r.Method {
+	extract := ExtractAttributes{Request: r}
+	url := extract.getURL()
+	switch extract.getMethod() {
 	case "GET": //GET /products
 
-		if len(r.URL.Path) > len("/products/") { //GET /products/{barcode}
-			targetCode := r.URL.Path[len("/products/"):]
+		if len(extract.getURL()) > len("/products/") { //GET /products/{barcode}
+			targetCode := url[len("/products/"):]
 			targetKey := datastore.NewKey(ctx, "Product", targetCode, 0, nil)
 			var targetProduct Product
 			err := datastore.Get(ctx, targetKey, &targetProduct)
@@ -80,26 +95,24 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			q := datastore.NewQuery("Product")
-			var products []Product
-			_, err := q.GetAll(ctx, &products)
+			var products ProductList
+			_, err := q.GetAll(ctx, &products.Products)
 			if err != nil {
 				log.Errorf(ctx, "GET product: %v", err)
 			}
-			output := "{\"products\":["
-			for i, targetProduct := range products {
-				output += targetProduct.toJson()
-				if i < len(products)-1 {
-					output += ","
-				}
+			resultJson, jsonErr := json.Marshal(products)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET product: %v", err)
+				return
 			}
-			output += "]}"
-			fmt.Fprintf(w, output)
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 		}
 	case "POST": //POST /products
-		code := r.FormValue("code")
-		name := r.FormValue("name")
-		description := r.FormValue("description")
-		image := r.FormValue("image")
+		code := extract.getFormValue("code")
+		name := extract.getFormValue("name")
+		description := extract.getFormValue("description")
+		image := extract.getFormValue("image")
 		newProduct := &Product{Barcode: code, Name: name, Description: description, Image: image}
 		key := datastore.NewKey(ctx, "Product", code, 0, nil)
 		if _, err := datastore.Put(ctx, key, newProduct); err != nil {
@@ -108,10 +121,10 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, (*newProduct).toJson())
 	case "PUT": //PUT /products/{barcode}
-		code := r.URL.Path[len("/products/"):]
-		name := r.FormValue("name")
-		description := r.FormValue("description")
-		image := r.FormValue("image")
+		code := url[len("/products/"):]
+		name := extract.getFormValue("name")
+		description := extract.getFormValue("description")
+		image := extract.getFormValue("image")
 		newProduct := &Product{Barcode: code, Name: name, Description: description, Image: image}
 		key := datastore.NewKey(ctx, "Product", code, 0, nil)
 		if _, err := datastore.Put(ctx, key, newProduct); err != nil {
@@ -121,7 +134,7 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, (*newProduct).toJson())
 	case "DELETE": //DELETE //products{barcode}
 		var tempProd Product
-		code := r.URL.Path[len("/products/"):]
+		code := url[len("/products/"):]
 		key := datastore.NewKey(ctx, "Product", code, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempProd)
 		if getErr != nil {
@@ -140,11 +153,13 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 
 func pricesHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
-	switch r.Method {
+	extract := ExtractAttributes{Request: r}
+	url := extract.getURL()
+	switch extract.getMethod() {
 	case "GET": //GET /prices
 
-		if len(r.URL.Path) > len("/prices/") { //GET /prices/{barcode}
-			targetCode := r.URL.Path[len("/prices/"):]
+		if len(url) > len("/prices/") { //GET /prices/{barcode}
+			targetCode := url[len("/prices/"):]
 			targetKey := datastore.NewKey(ctx, "Price", targetCode, 0, nil)
 			var targetPrice Price
 			err := datastore.Get(ctx, targetKey, &targetPrice)
@@ -155,24 +170,22 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			q := datastore.NewQuery("Price")
-			var prices []Price
-			_, err := q.GetAll(ctx, &prices)
+			var prices PriceList
+			_, err := q.GetAll(ctx, &prices.Prices)
 			if err != nil {
 				log.Errorf(ctx, "GET price: %v", err)
 			}
-			output := "{\"prices\":["
-			for i, targetPrice := range prices {
-				output += targetPrice.toJson()
-				if i < len(prices)-1 {
-					output += ","
-				}
+			resultJson, jsonErr := json.Marshal(prices)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET price: %v", err)
+				return
 			}
-			output += "]}"
-			fmt.Fprintf(w, output)
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 		}
 	case "POST": //POST /prices
-		code := r.FormValue("code")
-		price, er := strconv.ParseFloat(r.FormValue("price"), 64)
+		code := extract.getFormValue("code")
+		price, er := strconv.ParseFloat(extract.getFormValue("price"), 64)
 		if er != nil {
 			log.Errorf(ctx, "adding price: %v", er)
 			return
@@ -185,8 +198,8 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, (*newPrice).toJson())
 	case "PUT": //PUT /prices/{barcode}
-		code := r.URL.Path[len("/prices/"):]
-		price, er := strconv.ParseFloat(r.FormValue("price"), 64)
+		code := url[len("/prices/"):]
+		price, er := strconv.ParseFloat(extract.getFormValue("price"), 64)
 		if er != nil {
 			log.Errorf(ctx, "updating price: %v", er)
 			return
@@ -200,7 +213,7 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, (*newPrice).toJson())
 	case "DELETE": //DELETE /prices/{barcode}
 		var tempPrice Price
-		code := r.URL.Path[len("/prices/"):]
+		code := url[len("/prices/"):]
 		key := datastore.NewKey(ctx, "Price", code, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempPrice)
 		if getErr != nil {
@@ -218,7 +231,9 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 
 func stocksHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
-	switch r.Method {
+	extract := ExtractAttributes{Request: r}
+	url := extract.getURL()
+	switch extract.getMethod() {
 	case "GET": //GET /stocks
 		q := datastore.NewQuery("Stock")
 		var stocks []Stock
@@ -227,8 +242,8 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "fetching stocks: %v", err)
 			return
 		}
-		if len(r.URL.Path) > len("/stocks/") { //GET /stocks/{barcode}
-			targetCode := r.URL.Path[len("/stocks/"):]
+		if len(url) > len("/stocks/") { //GET /stocks/{barcode}
+			targetCode := url[len("/stocks/"):]
 			targetKey := datastore.NewKey(ctx, "Stock", targetCode, 0, nil)
 			var targetStock Stock
 			err := datastore.Get(ctx, targetKey, &targetStock)
@@ -239,25 +254,23 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			q := datastore.NewQuery("Stock")
-			var stocks []Stock
-			_, err := q.GetAll(ctx, &stocks)
+			var stocks StockList
+			_, err := q.GetAll(ctx, &stocks.Stocks)
 			if err != nil {
 				log.Errorf(ctx, "fetching stocks: %v", err)
 				return
 			}
-			output := "{\"stocks\":["
-			for i, targetStock := range stocks {
-				output += targetStock.toJson()
-				if i < len(stocks)-1 {
-					output += ","
-				}
+			resultJson, jsonErr := json.Marshal(stocks)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET stock: %v", err)
+				return
 			}
-			output += "]}"
-			fmt.Fprintf(w, output)
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 		}
 	case "POST": //POST /stocks
-		code := r.FormValue("code")
-		stock, er := strconv.ParseInt(r.FormValue("stock"), 10, 64)
+		code := extract.getFormValue("code")
+		stock, er := strconv.ParseInt(extract.getFormValue("stock"), 10, 64)
 		if er != nil {
 			log.Errorf(ctx, "adding stock: %v", er)
 			return
@@ -270,8 +283,8 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, (*newStock).toJson())
 	case "PUT": //PUT /stocks/{barcode}
-		code := r.URL.Path[len("/stocks/"):]
-		stock, er := strconv.ParseInt(r.FormValue("stock"), 10, 64)
+		code := url[len("/stocks/"):]
+		stock, er := strconv.ParseInt(extract.getFormValue("stock"), 10, 64)
 		if er != nil {
 			log.Errorf(ctx, "adding stock: %v", er)
 			return
@@ -285,7 +298,7 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, (*newStock).toJson())
 	case "DELETE": //DELETE /stocks/{barcode}
 		var tempStock Stock
-		code := r.URL.Path[len("/stocks/"):]
+		code := url[len("/stocks/"):]
 		key := datastore.NewKey(ctx, "Stock", code, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempStock)
 		if getErr != nil {
@@ -303,11 +316,13 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 
 func usersHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
-	switch r.Method {
+	extract := ExtractAttributes{Request: r}
+	url := extract.getURL()
+	switch extract.getMethod() {
 	case "GET": //GET /users
 
-		if len(r.URL.Path) > len("/users/") { //GET /users/{name}
-			targetName := r.URL.Path[len("/users/"):]
+		if len(url) > len("/users/") { //GET /users/{name}
+			targetName := url[len("/users/"):]
 			targetKey := datastore.NewKey(ctx, "User", targetName, 0, nil)
 			var targetUser User
 			err := datastore.Get(ctx, targetKey, &targetUser)
@@ -318,32 +333,24 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		} else {
 			q := datastore.NewQuery("User")
-			var users []User
-			_, err := q.GetAll(ctx, &users)
+			var users UserList
+			_, err := q.GetAll(ctx, &users.Users)
 			if err != nil {
 				log.Errorf(ctx, "fetching users: %v", err)
 				return
 			}
-			output := "{\"users\":["
-			for i, targetUser := range users {
-				output += targetUser.toJson()
-				if i < len(users)-1 {
-					output += ","
-				}
+			resultJson, jsonErr := json.Marshal(users)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET product: %v", err)
+				return
 			}
-			output += "]}"
-			fmt.Fprintf(w, output)
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 		}
 	case "POST": //POST /users
-
-		if parseErr := r.ParseForm(); parseErr != nil {
-			log.Errorf(ctx, "adding user: %v", parseErr)
-		}
-		name := r.FormValue("name")
-		balance, er := strconv.ParseFloat(r.FormValue("balance"), 64)
-		cart := r.Form["cart"]
-		//fmt.Fprintf(w, name[0])
-		//fmt.Fprintf(w, "test")
+		name := extract.getFormValue("name")
+		balance, er := strconv.ParseFloat(extract.getFormValue("balance"), 64)
+		cart := extract.getForm("cart")
 		if er != nil {
 			log.Errorf(ctx, "adding user: %v", er)
 			return
@@ -356,12 +363,9 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, (*newUser).toJson())
 	case "PUT": //PUT /users/{name}
-		if parseErr := r.ParseForm(); parseErr != nil {
-			log.Errorf(ctx, "adding user: %v", parseErr)
-		}
-		name := r.URL.Path[len("/users/"):]
-		balance, er := strconv.ParseFloat(r.FormValue("balance"), 64)
-		cart := r.Form["cart"]
+		name := url[len("/users/"):]
+		balance, er := strconv.ParseFloat(extract.getFormValue("balance"), 64)
+		cart := extract.getForm("cart")
 		if er != nil {
 			log.Errorf(ctx, "adding user: %v", er)
 			return
@@ -375,7 +379,7 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, (*newUser).toJson())
 	case "DELETE": //DELETE /users/{name}
 		var tempUser User
-		name := r.URL.Path[len("/users/"):]
+		name := url[len("/users/"):]
 		key := datastore.NewKey(ctx, "User", name, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempUser)
 		if getErr != nil {
@@ -392,48 +396,53 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p Product) toJson() string {
-	output := "{\"name\":\""
-	output += p.Name
-	output += "\",\"barcode\":\""
-	output += p.Barcode
-	output += "\",\"description\":\""
-	output += p.Description
-	output += "\",\"image\":\""
-	output += p.Image
-	output += "\"}"
-	return output
+	resultJson, jsonErr := json.Marshal(p)
+	if jsonErr != nil {
+		return ""
+	}
+	resultString := string(resultJson)
+	return resultString
 }
 
 func (p Price) toJson() string {
-	output := "{\"barcode\":\""
-	output += p.Barcode
-	output += "\",\"price\":"
-	output += strconv.FormatFloat(p.Price, 'f', 2, 64)
-	output += "}"
-	return output
+	resultJson, jsonErr := json.Marshal(p)
+	if jsonErr != nil {
+		return ""
+	}
+	resultString := string(resultJson)
+	return resultString
 }
 
 func (p Stock) toJson() string {
-	output := "{\"barcode\":\""
-	output += p.Barcode
-	output += "\",\"stock\":"
-	output += strconv.FormatInt(p.Stock, 10)
-	output += "}"
-	return output
+	resultJson, jsonErr := json.Marshal(p)
+	if jsonErr != nil {
+		return ""
+	}
+	resultString := string(resultJson)
+	return resultString
 }
 
 func (u User) toJson() string {
-	output := "{\"name\":\""
-	output += u.Name
-	output += "\",\"balance\":"
-	output += strconv.FormatFloat(u.Balance, 'f', 2, 64)
-	output += ",\"cart\":["
-	for i, code := range u.Cart {
-		output += "\"" + code + "\""
-		if i < len(u.Cart)-1 {
-			output += ","
-		}
+	resultJson, jsonErr := json.Marshal(u)
+	if jsonErr != nil {
+		return ""
 	}
-	output += "]}"
-	return output
+	resultString := string(resultJson)
+	return resultString
+}
+
+func (e ExtractAttributes) getMethod() string {
+	return e.Request.Method
+}
+
+func (e ExtractAttributes) getFormValue(s string) string {
+	return e.Request.FormValue(s)
+}
+
+func (e ExtractAttributes) getForm(s string) []string {
+	return e.Request.Form[s]
+}
+
+func (e ExtractAttributes) getURL() string {
+	return e.Request.URL.Path
 }
