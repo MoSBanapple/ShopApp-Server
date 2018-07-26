@@ -20,9 +20,8 @@ If a product with the same code already exists, it will be deleted after running
 
 func TestProductCreate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
-	result := makeCall(url, "POST")
 	expected := `{"name":"Apple","barcode":"testCode12345","description":"test","image":"thisimage"}`
-	if result != expected {
+	if passed, result := testCall(url, "POST", expected); !passed {
 		t.Errorf("POST product: got %v want %v",
 			result, expected)
 	}
@@ -30,11 +29,10 @@ func TestProductCreate(t *testing.T) {
 
 func TestProductGet(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/products/testCode12345"
 	expected := `{"name":"Apple","barcode":"testCode12345","description":"test","image":"thisimage"}`
-	result := makeCall(url, "GET")
-	if result != expected {
+	if passed, result := testCall(url, "GET", expected); !passed {
 		t.Errorf("GET product: got %v want %v",
 			result, expected)
 	}
@@ -42,11 +40,10 @@ func TestProductGet(t *testing.T) {
 
 func TestProductUpdate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/products/testCode12345?name=Banana&description=test2&image=thisimage2"
-	result := makeCall(url, "PUT")
 	expected := `{"name":"Banana","barcode":"testCode12345","description":"test2","image":"thisimage2"}`
-	if result != expected {
+	if passed, result := testCall(url, "PUT", expected); !passed {
 		t.Errorf("PUT product: got %v want %v",
 			result, expected)
 	}
@@ -54,42 +51,41 @@ func TestProductUpdate(t *testing.T) {
 
 func TestProductDelete(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/products?name=Apple&code=testCode12345&description=test&image=thisimage"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/products/testCode12345"
-	result := makeCall(url, "DELETE")
+
 	expected := `204 OK`
-	if result != expected {
+	if passed, result := testCall(url, "DELETE", expected); !passed {
 		t.Errorf("DELETE product: got %v want %v",
 			result, expected)
 	}
-	result = makeCall(url, "DELETE")
 	expected = `404 not found`
-	if result != expected {
+	if passed, result := testCall(url, "DELETE", expected); !passed {
 		t.Errorf("DELETE product: got %v want %v",
 			result, expected)
 	}
 
 }
 
-func makeCall(url string, t string) string {
+func testCall(url string, t string, expected string) (bool, string) {
 	req, err := http.NewRequest(t, url, nil)
 	if err != nil {
 		//t.Errorf("NewRequest: %v", err.Error())
-		return "Err"
+		return false, err.Error()
 	}
 
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		//t.Errorf("Do: %v", err.Error())
-		return "Err"
+		return false, err.Error()
 	}
 	defer resp.Body.Close()
 	bodyBytes, err2 := ioutil.ReadAll(resp.Body)
 	if err2 != nil {
 		//t.Errorf("ReadAll: %v", err.Error())
-		return "Err"
+		return false, err2.Error()
 	}
 	body := string(bodyBytes)
-	return body
+	return body == expected, body
 }

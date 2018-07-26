@@ -20,9 +20,8 @@ If a stock with the same code already exists, it will be deleted after running t
 
 func TestStockCreate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/stocks?code=testCode12345&stock=1"
-	result := makeCall(url, "POST")
 	expected := `{"barcode":"testCode12345","stock":1}`
-	if result != expected {
+	if passed, result := testCall(url, "POST", expected); !passed {
 		t.Errorf("POST stock: got %v want %v",
 			result, expected)
 	}
@@ -30,11 +29,10 @@ func TestStockCreate(t *testing.T) {
 
 func TestStockGet(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/stocks?code=testCode12345&stock=1"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	expected := `{"barcode":"testCode12345","stock":1}`
 	url = "https://storeproject-209402.appspot.com/stocks/testCode12345"
-	result := makeCall(url, "GET")
-	if result != expected {
+	if passed, result := testCall(url, "GET", expected); !passed {
 		t.Errorf("GET stock: got %v want %v",
 			result, expected)
 	}
@@ -42,11 +40,10 @@ func TestStockGet(t *testing.T) {
 
 func TestStockUpdate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/prices?code=testCode12345&price=1.23"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/stocks/testCode12345?stock=2"
-	result := makeCall(url, "PUT")
 	expected := `{"barcode":"testCode12345","stock":2}`
-	if result != expected {
+	if passed, result := testCall(url, "PUT", expected); !passed {
 		t.Errorf("PUT stock: got %v want %v",
 			result, expected)
 	}
@@ -54,17 +51,16 @@ func TestStockUpdate(t *testing.T) {
 
 func TestStockDelete(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/stocks?code=testCode12345&stock=1"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/stocks/testCode12345"
-	result := makeCall(url, "DELETE")
+
 	expected := `204 OK`
-	if result != expected {
+	if passed, result := testCall(url, "DELETE", expected); !passed {
 		t.Errorf("DELETE stock: got %v want %v",
 			result, expected)
 	}
-	result = makeCall(url, "DELETE")
 	expected = `404 not found`
-	if result != expected {
+	if passed, result := testCall(url, "DELETE", expected); !passed {
 		t.Errorf("DELETE stock: got %v want %v",
 			result, expected)
 	}

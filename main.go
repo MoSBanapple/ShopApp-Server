@@ -12,6 +12,7 @@ import (
 	"google.golang.org/appengine/log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Product struct {
@@ -57,6 +58,43 @@ type ExtractAttributes struct {
 	Request *http.Request
 }
 
+func (e ExtractAttributes) getMethod() string {
+	return e.Request.Method
+}
+
+func (e ExtractAttributes) getFormValue(s string) string {
+	return e.Request.FormValue(s)
+}
+
+func (e ExtractAttributes) getForm(s string) []string {
+	return e.Request.Form[s]
+}
+
+func (e ExtractAttributes) getURL() string {
+	return e.Request.URL.Path
+}
+
+func (e ExtractAttributes) URLPathHasSuffix() bool {
+	url := e.Request.URL.Path
+	if strings.Count(url, "/") < 2 {
+		return false
+	}
+	array := strings.SplitAfter(url, "/")
+	if len(array[2]) == 0 {
+		return false
+	}
+	return true
+}
+
+func (e ExtractAttributes) URLPathGetSuffix() string {
+	url := e.Request.URL.Path
+	if strings.Count(url, "/") < 2 {
+		return ""
+	}
+	array := strings.SplitAfter(url, "/")
+	return array[2]
+}
+
 func main() {
 	//http.HandleFunc("/", handle)
 	http.HandleFunc("/test/", testHandle)
@@ -79,19 +117,27 @@ func testHandle(w http.ResponseWriter, r *http.Request) {
 func productsHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	extract := ExtractAttributes{Request: r}
-	url := extract.getURL()
+
 	switch extract.getMethod() {
 	case "GET": //GET /products
 
-		if len(extract.getURL()) > len("/products/") { //GET /products/{barcode}
-			targetCode := url[len("/products/"):]
+		if extract.URLPathHasSuffix() { //GET /products/{barcode}
+			targetCode := extract.URLPathGetSuffix()
 			targetKey := datastore.NewKey(ctx, "Product", targetCode, 0, nil)
 			var targetProduct Product
 			err := datastore.Get(ctx, targetKey, &targetProduct)
 			if err != nil {
 				log.Errorf(ctx, "GET product/%v: %v", targetCode, err)
+				fmt.Fprintf(w, "404 not found")
+				return
 			}
-			fmt.Fprintf(w, targetProduct.toJson())
+			resultJson, jsonErr := json.Marshal(targetProduct)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET product: %v", jsonErr)
+				return
+			}
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 			return
 		} else {
 			q := datastore.NewQuery("Product")
@@ -119,9 +165,15 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "adding product: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newProduct).toJson())
+		resultJson, jsonErr := json.Marshal(newProduct)
+		if jsonErr != nil {
+			log.Errorf(ctx, "POST product: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "PUT": //PUT /products/{barcode}
-		code := url[len("/products/"):]
+		code := extract.URLPathGetSuffix()
 		name := extract.getFormValue("name")
 		description := extract.getFormValue("description")
 		image := extract.getFormValue("image")
@@ -131,10 +183,16 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "updating product: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newProduct).toJson())
+		resultJson, jsonErr := json.Marshal(newProduct)
+		if jsonErr != nil {
+			log.Errorf(ctx, "PUT product: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "DELETE": //DELETE //products{barcode}
 		var tempProd Product
-		code := url[len("/products/"):]
+		code := extract.URLPathGetSuffix()
 		key := datastore.NewKey(ctx, "Product", code, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempProd)
 		if getErr != nil {
@@ -154,19 +212,27 @@ func productsHandle(w http.ResponseWriter, r *http.Request) {
 func pricesHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	extract := ExtractAttributes{Request: r}
-	url := extract.getURL()
+
 	switch extract.getMethod() {
 	case "GET": //GET /prices
 
-		if len(url) > len("/prices/") { //GET /prices/{barcode}
-			targetCode := url[len("/prices/"):]
+		if extract.URLPathHasSuffix() { //GET /prices/{barcode}
+			targetCode := extract.URLPathGetSuffix()
 			targetKey := datastore.NewKey(ctx, "Price", targetCode, 0, nil)
 			var targetPrice Price
 			err := datastore.Get(ctx, targetKey, &targetPrice)
 			if err != nil {
 				log.Errorf(ctx, "GET price/%v: %v", targetCode, err)
+				fmt.Fprintf(w, "404 not found")
+				return
 			}
-			fmt.Fprintf(w, targetPrice.toJson())
+			resultJson, jsonErr := json.Marshal(targetPrice)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET price: %v", jsonErr)
+				return
+			}
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 			return
 		} else {
 			q := datastore.NewQuery("Price")
@@ -196,9 +262,15 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "adding price: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newPrice).toJson())
+		resultJson, jsonErr := json.Marshal(newPrice)
+		if jsonErr != nil {
+			log.Errorf(ctx, "POST price: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "PUT": //PUT /prices/{barcode}
-		code := url[len("/prices/"):]
+		code := extract.URLPathGetSuffix()
 		price, er := strconv.ParseFloat(extract.getFormValue("price"), 64)
 		if er != nil {
 			log.Errorf(ctx, "updating price: %v", er)
@@ -210,10 +282,16 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "updating price: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newPrice).toJson())
+		resultJson, jsonErr := json.Marshal(newPrice)
+		if jsonErr != nil {
+			log.Errorf(ctx, "PUT price: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "DELETE": //DELETE /prices/{barcode}
 		var tempPrice Price
-		code := url[len("/prices/"):]
+		code := extract.URLPathGetSuffix()
 		key := datastore.NewKey(ctx, "Price", code, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempPrice)
 		if getErr != nil {
@@ -232,7 +310,6 @@ func pricesHandle(w http.ResponseWriter, r *http.Request) {
 func stocksHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	extract := ExtractAttributes{Request: r}
-	url := extract.getURL()
 	switch extract.getMethod() {
 	case "GET": //GET /stocks
 		q := datastore.NewQuery("Stock")
@@ -242,15 +319,23 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "fetching stocks: %v", err)
 			return
 		}
-		if len(url) > len("/stocks/") { //GET /stocks/{barcode}
-			targetCode := url[len("/stocks/"):]
+		if extract.URLPathHasSuffix() { //GET /stocks/{barcode}
+			targetCode := extract.URLPathGetSuffix()
 			targetKey := datastore.NewKey(ctx, "Stock", targetCode, 0, nil)
 			var targetStock Stock
 			err := datastore.Get(ctx, targetKey, &targetStock)
 			if err != nil {
 				log.Errorf(ctx, "GET stock/%v: %v", targetCode, err)
+				fmt.Fprintf(w, "404 not found")
+				return
 			}
-			fmt.Fprintf(w, targetStock.toJson())
+			resultJson, jsonErr := json.Marshal(targetStock)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET stock: %v", jsonErr)
+				return
+			}
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 			return
 		} else {
 			q := datastore.NewQuery("Stock")
@@ -281,9 +366,15 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "adding stock: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newStock).toJson())
+		resultJson, jsonErr := json.Marshal(newStock)
+		if jsonErr != nil {
+			log.Errorf(ctx, "POST stock: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "PUT": //PUT /stocks/{barcode}
-		code := url[len("/stocks/"):]
+		code := extract.URLPathGetSuffix()
 		stock, er := strconv.ParseInt(extract.getFormValue("stock"), 10, 64)
 		if er != nil {
 			log.Errorf(ctx, "adding stock: %v", er)
@@ -295,10 +386,16 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "adding stock: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newStock).toJson())
+		resultJson, jsonErr := json.Marshal(newStock)
+		if jsonErr != nil {
+			log.Errorf(ctx, "PUT stock: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "DELETE": //DELETE /stocks/{barcode}
 		var tempStock Stock
-		code := url[len("/stocks/"):]
+		code := extract.URLPathGetSuffix()
 		key := datastore.NewKey(ctx, "Stock", code, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempStock)
 		if getErr != nil {
@@ -317,19 +414,26 @@ func stocksHandle(w http.ResponseWriter, r *http.Request) {
 func usersHandle(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	extract := ExtractAttributes{Request: r}
-	url := extract.getURL()
 	switch extract.getMethod() {
 	case "GET": //GET /users
 
-		if len(url) > len("/users/") { //GET /users/{name}
-			targetName := url[len("/users/"):]
+		if extract.URLPathHasSuffix() { //GET /users/{name}
+			targetName := extract.URLPathGetSuffix()
 			targetKey := datastore.NewKey(ctx, "User", targetName, 0, nil)
 			var targetUser User
 			err := datastore.Get(ctx, targetKey, &targetUser)
 			if err != nil {
 				log.Errorf(ctx, "GET user/%v: %v", targetName, err)
+				fmt.Fprintf(w, "404 not found")
+				return
 			}
-			fmt.Fprintf(w, targetUser.toJson())
+			resultJson, jsonErr := json.Marshal(targetUser)
+			if jsonErr != nil {
+				log.Errorf(ctx, "GET user: %v", jsonErr)
+				return
+			}
+			resultString := string(resultJson)
+			fmt.Fprintf(w, resultString)
 			return
 		} else {
 			q := datastore.NewQuery("User")
@@ -361,9 +465,15 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "adding user: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newUser).toJson())
+		resultJson, jsonErr := json.Marshal(newUser)
+		if jsonErr != nil {
+			log.Errorf(ctx, "POST user: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "PUT": //PUT /users/{name}
-		name := url[len("/users/"):]
+		name := extract.URLPathGetSuffix()
 		balance, er := strconv.ParseFloat(extract.getFormValue("balance"), 64)
 		cart := extract.getForm("cart")
 		if er != nil {
@@ -376,10 +486,16 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(ctx, "adding user: %v", err)
 			return
 		}
-		fmt.Fprintf(w, (*newUser).toJson())
+		resultJson, jsonErr := json.Marshal(newUser)
+		if jsonErr != nil {
+			log.Errorf(ctx, "PUT user: %v", jsonErr)
+			return
+		}
+		resultString := string(resultJson)
+		fmt.Fprintf(w, resultString)
 	case "DELETE": //DELETE /users/{name}
 		var tempUser User
-		name := url[len("/users/"):]
+		name := extract.URLPathGetSuffix()
 		key := datastore.NewKey(ctx, "User", name, 0, nil)
 		getErr := datastore.Get(ctx, key, &tempUser)
 		if getErr != nil {
@@ -393,56 +509,4 @@ func usersHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, "204 OK")
 	}
-}
-
-func (p Product) toJson() string {
-	resultJson, jsonErr := json.Marshal(p)
-	if jsonErr != nil {
-		return ""
-	}
-	resultString := string(resultJson)
-	return resultString
-}
-
-func (p Price) toJson() string {
-	resultJson, jsonErr := json.Marshal(p)
-	if jsonErr != nil {
-		return ""
-	}
-	resultString := string(resultJson)
-	return resultString
-}
-
-func (p Stock) toJson() string {
-	resultJson, jsonErr := json.Marshal(p)
-	if jsonErr != nil {
-		return ""
-	}
-	resultString := string(resultJson)
-	return resultString
-}
-
-func (u User) toJson() string {
-	resultJson, jsonErr := json.Marshal(u)
-	if jsonErr != nil {
-		return ""
-	}
-	resultString := string(resultJson)
-	return resultString
-}
-
-func (e ExtractAttributes) getMethod() string {
-	return e.Request.Method
-}
-
-func (e ExtractAttributes) getFormValue(s string) string {
-	return e.Request.FormValue(s)
-}
-
-func (e ExtractAttributes) getForm(s string) []string {
-	return e.Request.Form[s]
-}
-
-func (e ExtractAttributes) getURL() string {
-	return e.Request.URL.Path
 }

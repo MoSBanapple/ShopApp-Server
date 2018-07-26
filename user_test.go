@@ -20,9 +20,8 @@ If a user with the same code already exists, it will be deleted after running th
 
 func TestUserCreate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/users?name=TestUser&balance=50.02&cart=12345&cart=67890"
-	result := makeCall(url, "POST")
 	expected := `{"name":"TestUser","balance":50.02,"cart":["12345","67890"]}`
-	if result != expected {
+	if passed, result := testCall(url, "POST", expected); !passed {
 		t.Errorf("POST user: got %v want %v",
 			result, expected)
 	}
@@ -30,11 +29,10 @@ func TestUserCreate(t *testing.T) {
 
 func TestUserGet(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/users?name=TestUser&balance=50.02&cart=12345&cart=67890"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	expected := `{"name":"TestUser","balance":50.02,"cart":["12345","67890"]}`
 	url = "https://storeproject-209402.appspot.com/users/TestUser"
-	result := makeCall(url, "GET")
-	if result != expected {
+	if passed, result := testCall(url, "GET", expected); !passed {
 		t.Errorf("GET user: got %v want %v",
 			result, expected)
 	}
@@ -42,11 +40,11 @@ func TestUserGet(t *testing.T) {
 
 func TestUserUpdate(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/users?name=TestUser&balance=50.02&cart=12345&cart=67890"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/users/TestUser?balance=23.45&cart=654"
-	result := makeCall(url, "PUT")
+
 	expected := `{"name":"TestUser","balance":23.45,"cart":["654"]}`
-	if result != expected {
+	if passed, result := testCall(url, "PUT", expected); !passed {
 		t.Errorf("PUT user: got %v want %v",
 			result, expected)
 	}
@@ -54,17 +52,16 @@ func TestUserUpdate(t *testing.T) {
 
 func TestUserDelete(t *testing.T) {
 	url := "https://storeproject-209402.appspot.com/users?name=TestUser&balance=50.02&cart=12345&cart=67890"
-	makeCall(url, "POST")
+	testCall(url, "POST", "")
 	url = "https://storeproject-209402.appspot.com/users/TestUser"
-	result := makeCall(url, "DELETE")
+
 	expected := `204 OK`
-	if result != expected {
+	if passed, result := testCall(url, "DELETE", expected); !passed {
 		t.Errorf("DELETE user: got %v want %v",
 			result, expected)
 	}
-	result = makeCall(url, "DELETE")
 	expected = `404 not found`
-	if result != expected {
+	if passed, result := testCall(url, "DELETE", expected); !passed {
 		t.Errorf("DELETE user: got %v want %v",
 			result, expected)
 	}
